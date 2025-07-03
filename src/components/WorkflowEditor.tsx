@@ -26,6 +26,13 @@ import StatusBar from './StatusBar';
 import { useUndoRedo } from '../hooks/useUndoRedo';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 
+// Define custom node types outside of component to avoid React Flow warnings
+const nodeTypes = {
+  start: CustomNode,
+  action: ActionNode,
+  decision: DecisionNode,
+};
+
 // Initial nodes for the workflow
 const initialNodes: Node[] = [
   {
@@ -94,17 +101,12 @@ const WorkflowEditorFlow: React.FC = () => {
   useEffect(() => {
     // Skip the first update to avoid interfering with initial drag operations
     if (!isInitializedRef.current) {
-      isInitializedRef.current = true;
-      // Take initial snapshot after ReactFlow is fully initialized
-      setTimeout(() => {
-        takeSnapshot(initialNodes, initialEdges);
-      }, 500);
       return;
     }
     
     setNodes(currentState.nodes);
     setEdges(currentState.edges);
-  }, [currentState, setNodes, setEdges, takeSnapshot]);
+  }, [currentState, setNodes, setEdges]);
 
   // Enhanced handlers that create snapshots intelligently
   const handleNodesChange = useCallback((changes: any) => {
@@ -195,16 +197,6 @@ const WorkflowEditorFlow: React.FC = () => {
     onDelete: handleDelete,
   });
 
-  // Define custom node types
-  const nodeTypes = useMemo(
-    () => ({
-      start: CustomNode,
-      action: ActionNode,
-      decision: DecisionNode,
-    }),
-    [],
-  );
-
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
     console.log('Node clicked:', node);
     // Here you can implement node editing functionality
@@ -214,6 +206,13 @@ const WorkflowEditorFlow: React.FC = () => {
     console.log('Edge clicked:', edge);
     // Here you can implement edge editing functionality
   }, []);
+
+  // ReactFlow initialization handler
+  const onInit = useCallback(() => {
+    // Mark as initialized and take the initial snapshot
+    isInitializedRef.current = true;
+    takeSnapshot(nodes, edges);
+  }, [takeSnapshot, nodes, edges]);
 
   // Calculate selected items count
   const selectedNodesCount = useMemo(() => 
@@ -329,6 +328,7 @@ const WorkflowEditorFlow: React.FC = () => {
             onConnect={handleConnect}
             onNodeClick={onNodeClick}
             onEdgeClick={onEdgeClick}
+            onInit={onInit}
             nodeTypes={nodeTypes}
             fitView
             attributionPosition="bottom-left"
