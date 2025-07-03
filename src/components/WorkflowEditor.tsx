@@ -64,8 +64,8 @@ const initialNodes: Node[] = [
 const initialEdges: Edge[] = [
   { id: 'e1-2', source: '1', target: '2', animated: true },
   { id: 'e2-3', source: '2', target: '3' },
-  { id: 'e3-4', source: '3', target: '4', label: 'Yes', type: 'smoothstep' },
-  { id: 'e3-5', source: '3', target: '5', label: 'No', type: 'smoothstep' },
+  { id: 'e3-4', source: '3', target: '4', sourceHandle: 'yes', label: 'Yes', type: 'smoothstep' },
+  { id: 'e3-5', source: '3', target: '5', sourceHandle: 'no', label: 'No', type: 'smoothstep' },
 ];
 
 // Workflow Editor Flow Component (needs to be inside ReactFlowProvider)
@@ -98,8 +98,12 @@ const WorkflowEditorFlow: React.FC = () => {
     onNodesChange(changes);
     
     // Only take snapshots for non-position changes or when dragging has ended
+    // Exclude 'add' type changes since onDrop handles those
     const shouldTakeSnapshot = changes.some((change: any) => {
-      // Take snapshot for all non-position changes (add, remove, select, etc.)
+      // Skip snapshots for node additions (handled by onDrop)
+      if (change.type === 'add') return false;
+      
+      // Take snapshot for all non-position changes (remove, select, etc.)
       if (change.type !== 'position') return true;
       
       // For position changes, only take snapshot if dragging is explicitly false
@@ -241,6 +245,7 @@ const WorkflowEditorFlow: React.FC = () => {
 
       const newNodes = [...nodes, newNode];
       setNodes(newNodes);
+      // Take snapshot immediately for drag-and-drop operations
       takeSnapshot(newNodes, edges);
     },
     [screenToFlowPosition, setNodes, nodes, edges, takeSnapshot],
