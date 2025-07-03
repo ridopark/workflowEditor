@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -20,6 +20,11 @@ import CustomNode from './nodes/CustomNode';
 import DecisionNode from './nodes/DecisionNode';
 import ActionNode from './nodes/ActionNode';
 import NodePalette from './NodePalette';
+import StatusBar from './StatusBar';
+
+// Import custom hooks
+import { useUndoRedo } from '../hooks/useUndoRedo';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 
 // Initial nodes for the workflow
 const initialNodes: Node[] = [
@@ -70,10 +75,94 @@ const WorkflowEditorFlow: React.FC = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
 
-  const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges],
-  );
+  // Undo/Redo functionality
+  const {
+    takeSnapshot,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    currentState,
+    historySize,
+    currentIndex
+  } = useUndoRedo(initialNodes, initialEdges);
+
+  // Update nodes and edges when undo/redo state changes
+  useEffect(() => {
+    setNodes(currentState.nodes);
+    setEdges(currentState.edges);
+  }, [currentState, setNodes, setEdges]);
+
+  // Enhanced handlers that create snapshots
+  const handleNodesChange = useCallback((changes: any) => {
+    onNodesChange(changes);
+    // Take snapshot after a small delay to batch rapid changes
+    setTimeout(() => {
+      takeSnapshot(nodes, edges);
+    }, 100);
+  }, [onNodesChange, takeSnapshot, nodes, edges]);
+
+  const handleEdgesChange = useCallback((changes: any) => {
+    onEdgesChange(changes);
+    // Take snapshot after a small delay to batch rapid changes
+    setTimeout(() => {
+      takeSnapshot(nodes, edges);
+    }, 100);
+  }, [onEdgesChange, takeSnapshot, nodes, edges]);
+
+  const handleConnect = useCallback((params: Connection) => {
+    const newEdges = addEdge(params, edges);
+    setEdges(newEdges);
+    takeSnapshot(nodes, newEdges);
+  }, [edges, setEdges, takeSnapshot, nodes]);
+
+  // Undo/Redo handlers
+  const handleUndo = useCallback(() => {
+    const previousState = undo();
+    if (previousState) {
+      setNodes(previousState.nodes);
+      setEdges(previousState.edges);
+    }
+  }, [undo, setNodes, setEdges]);
+
+  const handleRedo = useCallback(() => {
+    const nextState = redo();
+    if (nextState) {
+      setNodes(nextState.nodes);
+      setEdges(nextState.edges);
+    }
+  }, [redo, setNodes, setEdges]);
+
+  // Save workflow handler
+  const handleSave = useCallback(() => {
+    const workflow = { nodes, edges };
+    console.log('Saving workflow:', workflow);
+    // Here you can implement actual save functionality
+    alert('Workflow saved! (Check console for details)');
+  }, [nodes, edges]);
+
+  // Delete selected nodes/edges
+  const handleDelete = useCallback(() => {
+    const selectedNodes = nodes.filter(node => node.selected);
+    const selectedEdges = edges.filter(edge => edge.selected);
+    
+    if (selectedNodes.length > 0 || selectedEdges.length > 0) {
+      const newNodes = nodes.filter(node => !node.selected);
+      const newEdges = edges.filter(edge => !edge.selected);
+      
+      setNodes(newNodes);
+      setEdges(newEdges);
+      takeSnapshot(newNodes, newEdges);
+    }
+  }, [nodes, edges, setNodes, setEdges, takeSnapshot]);
+
+  // Setup keyboard shortcuts
+  useKeyboardShortcuts({
+    onUndo: handleUndo,
+    onRedo: handleRedo,
+    onSave: handleSave,
+    onDelete: handleDelete,
+  });
 
   // Define custom node types
   const nodeTypes = useMemo(
@@ -94,6 +183,15 @@ const WorkflowEditorFlow: React.FC = () => {
     console.log('Edge clicked:', edge);
     // Here you can implement edge editing functionality
   }, []);
+
+  // Calculate selected items count
+  const selectedNodesCount = useMemo(() => 
+    nodes.filter(node => node.selected).length, [nodes]
+  );
+  
+  const selectedEdgesCount = useMemo(() => 
+    edges.filter(edge => edge.selected).length, [edges]
+  );
 
   // Drag and drop functionality
   const onDragStart = useCallback((event: React.DragEvent, nodeType: string) => {
@@ -128,9 +226,11 @@ const WorkflowEditorFlow: React.FC = () => {
         data: { label: `${type} node` },
       };
 
-      setNodes((nds) => nds.concat(newNode));
+      const newNodes = [...nodes, newNode];
+      setNodes(newNodes);
+      takeSnapshot(newNodes, edges);
     },
-    [screenToFlowPosition, setNodes],
+    [screenToFlowPosition, setNodes, nodes, edges, takeSnapshot],
   );
 
   return (
@@ -138,15 +238,38 @@ const WorkflowEditorFlow: React.FC = () => {
       <div className="workflow-header">
         <h2>Workflow Editor</h2>
         <div className="workflow-controls">
-          <button className="btn-primary">
-            Save Workflow
-          </button>
-          <button className="btn-secondary">
-            Export
-          </button>
-          <button className="btn-secondary">
-            Import
-          </button>
+          <div className="control-group">
+            <button 
+              className={`btn-icon ${!canUndo ? 'disabled' : ''}`}
+              onClick={handleUndo}
+              disabled={!canUndo}
+              title="Undo (Ctrl+Z)"
+            >
+              ↶
+            </button>
+            <button 
+              className={`btn-icon ${!canRedo ? 'disabled' : ''}`}
+              onClick={handleRedo}
+              disabled={!canRedo}
+              title="Redo (Ctrl+Y)"
+            >
+              ↷
+            </button>
+            <span className="history-info">
+              {currentIndex + 1}/{historySize}
+            </span>
+          </div>
+          <div className="control-group">
+            <button className="btn-primary" onClick={handleSave} title="Save (Ctrl+S)">
+              Save Workflow
+            </button>
+            <button className="btn-secondary">
+              Export
+            </button>
+            <button className="btn-secondary">
+              Import
+            </button>
+          </div>
         </div>
       </div>
       
@@ -162,9 +285,9 @@ const WorkflowEditorFlow: React.FC = () => {
           <ReactFlow
             nodes={nodes}
             edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
+            onNodesChange={handleNodesChange}
+            onEdgesChange={handleEdgesChange}
+            onConnect={handleConnect}
             onNodeClick={onNodeClick}
             onEdgeClick={onEdgeClick}
             nodeTypes={nodeTypes}
@@ -194,6 +317,16 @@ const WorkflowEditorFlow: React.FC = () => {
           </ReactFlow>
         </div>
       </div>
+      
+      <StatusBar 
+        nodeCount={nodes.length}
+        edgeCount={edges.length}
+        selectedNodes={selectedNodesCount}
+        selectedEdges={selectedEdgesCount}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        historyPosition={`${currentIndex + 1}/${historySize}`}
+      />
     </div>
   );
 };

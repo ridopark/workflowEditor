@@ -25,13 +25,50 @@
 
     .workflow-controls {
       display: flex;
-      gap: @spacing-sm;
+      gap: @spacing-md;
+      align-items: center;
+
+      .control-group {
+        display: flex;
+        gap: @spacing-sm;
+        align-items: center;
+      }
 
       .btn-primary,
       .btn-secondary {
         .button-base();
         padding: @spacing-sm @spacing-md;
         font-size: 0.9rem;
+      }
+
+      .btn-icon {
+        .button-base();
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        font-weight: bold;
+        
+        &.disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+          
+          &:hover {
+            transform: none;
+            box-shadow: none;
+          }
+        }
+      }
+
+      .history-info {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        padding: 0 @spacing-xs;
+        min-width: 40px;
+        text-align: center;
       }
 
       .btn-primary {

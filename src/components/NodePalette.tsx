@@ -58,12 +58,16 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onDragStart }) => {
       </div>
       
       <div className="palette-tips">
-        <h4>💡 Tips</h4>
+        <h4>💡 Tips & Shortcuts</h4>
         <ul>
           <li>Drag nodes from palette to canvas</li>
           <li>Connect nodes by dragging from handles</li>
           <li>Click nodes to edit properties</li>
           <li>Use scroll wheel to zoom</li>
+          <li>Undo changes <span className="shortcut">Ctrl+Z</span></li>
+          <li>Redo changes <span className="shortcut">Ctrl+Y</span></li>
+          <li>Save workflow <span className="shortcut">Ctrl+S</span></li>
+          <li>Delete selected <span className="shortcut">Del</span></li>
         </ul>
       </div>
     </div>
