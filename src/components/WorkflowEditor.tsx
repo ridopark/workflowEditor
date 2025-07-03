@@ -92,6 +92,10 @@ const WorkflowEditorFlow: React.FC = () => {
 
   // Update nodes and edges when undo/redo state changes
   useEffect(() => {
+    // Don't sync state if we're in the middle of adding a node
+    if (isAddingNodeRef.current) {
+      return;
+    }
     setNodes(currentState.nodes);
     setEdges(currentState.edges);
   }, [currentState, setNodes, setEdges]);
@@ -102,8 +106,12 @@ const WorkflowEditorFlow: React.FC = () => {
     
     // Don't take snapshots if we're in the middle of adding a node via drag-and-drop
     if (isAddingNodeRef.current) {
-      isAddingNodeRef.current = false;
-      return;
+      // Only reset the flag if this is an 'add' change type
+      const hasAddChange = changes.some((change: any) => change.type === 'add');
+      if (hasAddChange) {
+        // Don't reset flag here, let onDrop handle it with timeout
+        return;
+      }
     }
     
     // Only take snapshots for non-position changes or when dragging has ended
@@ -245,19 +253,24 @@ const WorkflowEditorFlow: React.FC = () => {
         id: `${type}-${Date.now()}`,
         type,
         position,
-        data: { label: `${type} node` },
+        data: { 
+          label: `${type.charAt(0).toUpperCase() + type.slice(1)} Node`,
+          ...(type === 'action' ? { description: 'New action step' } : {}),
+          ...(type === 'decision' ? { condition: 'condition here' } : {})
+        },
       };
 
-      // Set flag to prevent handleNodesChange from taking snapshot
+      // Set flag to prevent state sync conflicts
       isAddingNodeRef.current = true;
       
       const newNodes = [...nodes, newNode];
       setNodes(newNodes);
       
-      // Take snapshot after state update is complete
+      // Take snapshot and reset flag after everything is complete
       setTimeout(() => {
         takeSnapshot(newNodes, edges);
-      }, 0);
+        isAddingNodeRef.current = false;
+      }, 100);
     },
     [screenToFlowPosition, setNodes, nodes, edges, takeSnapshot],
   );
