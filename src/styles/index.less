@@ -1,0 +1,16 @@
+/*
+ * Main Less entry point
+ * This file imports all Less modules in the correct order
+ */
+
+// 1. Variables (must be first)
+@import 'variables.less';
+
+// 2. Mixins (depend on variables)
+@import 'mixins.less';
+
+// 3. Themes (depend on variables)
+@import 'themes.less';
+
+// 4. Utilities (depend on variables and mixins)
+@import 'utilities.less';

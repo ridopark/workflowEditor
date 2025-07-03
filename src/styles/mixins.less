@@ -1,0 +1,48 @@
+// Import variables
+@import 'variables.less';
+
+// Mixins
+.flex-center() {
+  display: flex;
+  place-items: center;
+}
+
+.flex-column() {
+  display: flex;
+  flex-direction: column;
+}
+
+.smooth-transition(@property: all, @duration: @transition-speed) {
+  transition: @property @duration ease;
+}
+
+.button-base() {
+  border-radius: @border-radius;
+  border: 1px solid transparent;
+  padding: @spacing-sm @spacing-md;
+  font-size: @font-size-base;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  .smooth-transition(all, @transition-speed);
+  
+  &:focus,
+  &:focus-visible {
+    outline: 4px auto -webkit-focus-ring-color;
+  }
+}
+
+.card-base() {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: @border-radius;
+  padding: @spacing-lg;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.text-gradient(@start-color, @end-color) {
+  background: linear-gradient(45deg, @start-color, @end-color);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

@@ -1,0 +1,55 @@
+// Import shared styles
+@import 'styles/index.less';
+
+// Component-specific variables
+@vite-glow: #646cffaa;
+@react-glow: #61dafbaa;
+
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: @spacing-lg;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: @spacing-lg;
+  will-change: filter;
+  .smooth-transition(filter, 300ms);
+  
+  &:hover {
+    filter: drop-shadow(0 0 2em @vite-glow);
+  }
+  
+  &.react:hover {
+    filter: drop-shadow(0 0 2em @react-glow);
+  }
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) {
+    .logo {
+      animation: logo-spin infinite 20s linear;
+    }
+  }
+}
+
+.card {
+  .card-base();
+  margin: @spacing-lg 0;
+}
+
+.read-the-docs {
+  color: @text-muted;
+  margin-top: @spacing-lg;
+}

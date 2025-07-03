@@ -1,0 +1,113 @@
+// Import shared styles
+@import '../styles/index.less';
+
+// Component-specific styles
+.example-component {
+  .card-base();
+  margin: @spacing-lg 0;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  
+  .header {
+    margin-bottom: @spacing-lg;
+    
+    h2 {
+      color: @primary-color;
+      margin: 0;
+      font-size: 1.5 * @font-size-base;
+      .text-gradient(@primary-color, @secondary-color);
+    }
+    
+    .subtitle {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.9 * @font-size-base;
+      margin-top: @spacing-sm;
+    }
+  }
+  
+  .content {
+    text-align: left;
+    
+    .description {
+      line-height: 1.6;
+      margin-bottom: @spacing-lg;
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .feature-list {
+      list-style: none;
+      padding: 0;
+      
+      li {
+        padding: @spacing-sm 0;
+        position: relative;
+        padding-left: @spacing-lg;
+        color: rgba(255, 255, 255, 0.8);
+        .smooth-transition(color);
+        
+        &:hover {
+          color: rgba(255, 255, 255, 1);
+        }
+        
+        &::before {
+          content: "✓";
+          color: @secondary-color;
+          font-weight: bold;
+          position: absolute;
+          left: 0;
+        }
+      }
+    }
+  }
+  
+  .actions {
+    display: flex;
+    gap: @spacing-sm;
+    margin-top: @spacing-lg;
+    justify-content: center;
+    
+    .btn-primary {
+      .button-base();
+      background: linear-gradient(45deg, @primary-color, @primary-hover);
+      color: white;
+      
+      &:hover {
+        background: linear-gradient(45deg, @primary-hover, darken(@primary-color, 10%));
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(100, 108, 255, 0.3);
+      }
+    }
+    
+    .btn-secondary {
+      .button-base();
+      background: transparent;
+      color: @primary-color;
+      border: 2px solid @primary-color;
+      
+      &:hover {
+        background: @primary-color;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(100, 108, 255, 0.2);
+      }
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .example-component {
+    margin: @spacing-md;
+    padding: @spacing-md;
+    
+    .actions {
+      flex-direction: column;
+      
+      .btn-primary,
+      .btn-secondary {
+        width: 100%;
+      }
+    }
+  }
+}

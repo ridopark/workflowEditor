@@ -1,0 +1,71 @@
+// Import base variables
+@import 'variables.less';
+
+// Dark theme (default)
+.theme-dark {
+  --primary-color: @primary-color;
+  --primary-hover: @primary-hover;
+  --secondary-color: @secondary-color;
+  --background-dark: @background-dark;
+  --background-light: @background-light;
+  --text-color: @text-color;
+  --text-muted: @text-muted;
+}
+
+// Light theme
+.theme-light {
+  --primary-color: #4f46e5;
+  --primary-hover: #3730a3;
+  --secondary-color: #059669;
+  --background-dark: #ffffff;
+  --background-light: #f8fafc;
+  --text-color: #1f2937;
+  --text-muted: #6b7280;
+}
+
+// Colorful theme
+.theme-colorful {
+  --primary-color: #8b5cf6;
+  --primary-hover: #7c3aed;
+  --secondary-color: #06b6d4;
+  --background-dark: #0f172a;
+  --background-light: #1e293b;
+  --text-color: #f1f5f9;
+  --text-muted: #94a3b8;
+}
+
+// Apply theme based on data attribute
+:root {
+  // Default to dark theme
+  .theme-dark();
+}
+
+[data-theme="light"] {
+  .theme-light();
+}
+
+[data-theme="colorful"] {
+  .theme-colorful();
+}
+
+// CSS custom properties for dynamic theming
+:root {
+  color: var(--text-color);
+  background-color: var(--background-dark);
+}
+
+// Update components to use CSS variables for theming
+.themable-button {
+  background-color: var(--primary-color);
+  color: white;
+  
+  &:hover {
+    background-color: var(--primary-hover);
+  }
+}
+
+.themable-card {
+  background-color: var(--background-light);
+  color: var(--text-color);
+  border: 1px solid var(--primary-color);
+}

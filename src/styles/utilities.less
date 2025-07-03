@@ -1,0 +1,66 @@
+// Import variables and mixins
+@import 'variables.less';
+@import 'mixins.less';
+
+// Utility classes for common patterns
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.flex { display: flex; }
+.flex-column { .flex-column(); }
+.flex-center { .flex-center(); }
+.flex-wrap { flex-wrap: wrap; }
+.flex-no-wrap { flex-wrap: nowrap; }
+
+// Spacing utilities
+.m-0 { margin: 0; }
+.m-xs { margin: @spacing-xs; }
+.m-sm { margin: @spacing-sm; }
+.m-md { margin: @spacing-md; }
+.m-lg { margin: @spacing-lg; }
+.m-xl { margin: @spacing-xl; }
+
+.p-0 { padding: 0; }
+.p-xs { padding: @spacing-xs; }
+.p-sm { padding: @spacing-sm; }
+.p-md { padding: @spacing-md; }
+.p-lg { padding: @spacing-lg; }
+.p-xl { padding: @spacing-xl; }
+
+// Color utilities
+.text-primary { color: @primary-color; }
+.text-secondary { color: @secondary-color; }
+.text-muted { color: @text-muted; }
+
+.bg-primary { background-color: @primary-color; }
+.bg-secondary { background-color: @secondary-color; }
+.bg-dark { background-color: @background-dark; }
+.bg-light { background-color: @background-light; }
+
+// Border utilities
+.rounded { border-radius: @border-radius; }
+.rounded-sm { border-radius: @border-radius / 2; }
+.rounded-lg { border-radius: @border-radius * 2; }
+
+// Animation utilities
+.transition { .smooth-transition(); }
+.transition-fast { .smooth-transition(all, 0.15s); }
+.transition-slow { .smooth-transition(all, 0.5s); }
+
+// Hover effects
+.hover-lift {
+  .smooth-transition(transform);
+  
+  &:hover {
+    transform: translateY(-2px);
+  }
+}
+
+.hover-glow {
+  .smooth-transition(box-shadow);
+  
+  &:hover {
+    box-shadow: 0 4px 16px rgba(100, 108, 255, 0.3);
+  }
+}
