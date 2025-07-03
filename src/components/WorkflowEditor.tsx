@@ -74,6 +74,9 @@ const WorkflowEditorFlow: React.FC = () => {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
+  
+  // Track when we're adding a node to avoid snapshot conflicts
+  const isAddingNodeRef = useRef(false);
 
   // Undo/Redo functionality
   const {
@@ -97,12 +100,14 @@ const WorkflowEditorFlow: React.FC = () => {
   const handleNodesChange = useCallback((changes: any) => {
     onNodesChange(changes);
     
+    // Don't take snapshots if we're in the middle of adding a node via drag-and-drop
+    if (isAddingNodeRef.current) {
+      isAddingNodeRef.current = false;
+      return;
+    }
+    
     // Only take snapshots for non-position changes or when dragging has ended
-    // Exclude 'add' type changes since onDrop handles those
     const shouldTakeSnapshot = changes.some((change: any) => {
-      // Skip snapshots for node additions (handled by onDrop)
-      if (change.type === 'add') return false;
-      
       // Take snapshot for all non-position changes (remove, select, etc.)
       if (change.type !== 'position') return true;
       
@@ -243,10 +248,16 @@ const WorkflowEditorFlow: React.FC = () => {
         data: { label: `${type} node` },
       };
 
+      // Set flag to prevent handleNodesChange from taking snapshot
+      isAddingNodeRef.current = true;
+      
       const newNodes = [...nodes, newNode];
       setNodes(newNodes);
-      // Take snapshot immediately for drag-and-drop operations
-      takeSnapshot(newNodes, edges);
+      
+      // Take snapshot after state update is complete
+      setTimeout(() => {
+        takeSnapshot(newNodes, edges);
+      }, 0);
     },
     [screenToFlowPosition, setNodes, nodes, edges, takeSnapshot],
   );
