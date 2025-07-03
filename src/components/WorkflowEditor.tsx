@@ -93,21 +93,34 @@ const WorkflowEditorFlow: React.FC = () => {
     setEdges(currentState.edges);
   }, [currentState, setNodes, setEdges]);
 
-  // Enhanced handlers that create snapshots
+  // Enhanced handlers that create snapshots intelligently
   const handleNodesChange = useCallback((changes: any) => {
     onNodesChange(changes);
-    // Take snapshot after a small delay to batch rapid changes
-    setTimeout(() => {
-      takeSnapshot(nodes, edges);
-    }, 100);
+    
+    // Only take snapshots for non-position changes or when dragging has ended
+    const shouldTakeSnapshot = changes.some((change: any) => {
+      // Take snapshot for all non-position changes (add, remove, select, etc.)
+      if (change.type !== 'position') return true;
+      
+      // For position changes, only take snapshot if dragging is explicitly false
+      return change.dragging === false;
+    });
+    
+    if (shouldTakeSnapshot) {
+      // Small delay to ensure state is stable
+      setTimeout(() => {
+        takeSnapshot(nodes, edges);
+      }, 50);
+    }
   }, [onNodesChange, takeSnapshot, nodes, edges]);
 
   const handleEdgesChange = useCallback((changes: any) => {
     onEdgesChange(changes);
-    // Take snapshot after a small delay to batch rapid changes
+    
+    // Take snapshot for edge changes (these are usually deliberate actions)
     setTimeout(() => {
       takeSnapshot(nodes, edges);
-    }, 100);
+    }, 50);
   }, [onEdgesChange, takeSnapshot, nodes, edges]);
 
   const handleConnect = useCallback((params: Connection) => {
