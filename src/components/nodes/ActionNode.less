@@ -1,0 +1,18 @@
+// Import shared node styles
+@import './CustomNode.less';
+
+// Action node specific styles
+.action-node {
+  background: var(--background-light);
+  border-color: var(--secondary-color);
+  
+  &:hover {
+    box-shadow: 0 8px 24px rgba(66, 184, 131, 0.3);
+  }
+
+  .node-content {
+    .node-icon {
+      color: var(--secondary-color);
+    }
+  }
+}

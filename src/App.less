@@ -53,3 +53,57 @@
   color: @text-muted;
   margin-top: @spacing-lg;
 }
+
+// Tab interface styles
+.demo-content {
+  text-align: center;
+  padding: @spacing-lg;
+}
+
+.workflow-content {
+  width: 100vw;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: var(--background-dark);
+  z-index: 1000;
+}
+
+.workflow-header-nav {
+  position: absolute;
+  top: @spacing-md;
+  left: @spacing-md;
+  z-index: 1001;
+  
+  .btn-secondary {
+    .button-base();
+    background: var(--background-light);
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+    backdrop-filter: blur(10px);
+    
+    &:hover {
+      background: var(--primary-color);
+      color: white;
+    }
+  }
+}
+
+.tab-switch {
+  margin: @spacing-xl 0;
+  
+  .btn-primary {
+    .button-base();
+    background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    border: none;
+    padding: @spacing-md @spacing-lg;
+    font-size: 1.1rem;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(100, 108, 255, 0.4);
+    }
+  }
+}

@@ -1,0 +1,28 @@
+// Import shared node styles
+@import './CustomNode.less';
+
+// Decision node specific styles
+.decision-node {
+  background: var(--background-light);
+  border-color: #ff6b6b;
+  border-radius: 50%;
+  min-width: 140px;
+  min-height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover {
+    box-shadow: 0 8px 24px rgba(255, 107, 107, 0.3);
+  }
+
+  .node-content {
+    .node-icon {
+      color: #ff6b6b;
+    }
+
+    .node-label {
+      font-size: 0.8rem;
+    }
+  }
+}
