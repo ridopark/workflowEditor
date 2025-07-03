@@ -74,6 +74,9 @@ const WorkflowEditorFlow: React.FC = () => {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
+  
+  // Track if the component has been initialized to prevent early undo/redo interference
+  const isInitializedRef = useRef(false);
 
   // Undo/Redo functionality
   const {
@@ -89,13 +92,28 @@ const WorkflowEditorFlow: React.FC = () => {
 
   // Update nodes and edges when undo/redo state changes
   useEffect(() => {
+    // Skip the first update to avoid interfering with initial drag operations
+    if (!isInitializedRef.current) {
+      isInitializedRef.current = true;
+      // Take initial snapshot after ReactFlow is fully initialized
+      setTimeout(() => {
+        takeSnapshot(initialNodes, initialEdges);
+      }, 500);
+      return;
+    }
+    
     setNodes(currentState.nodes);
     setEdges(currentState.edges);
-  }, [currentState, setNodes, setEdges]);
+  }, [currentState, setNodes, setEdges, takeSnapshot]);
 
   // Enhanced handlers that create snapshots intelligently
   const handleNodesChange = useCallback((changes: any) => {
     onNodesChange(changes);
+    
+    // Don't take snapshots during initial load period
+    if (!isInitializedRef.current) {
+      return;
+    }
     
     // Only take snapshots for non-position changes or when dragging has ended
     const shouldTakeSnapshot = changes.some((change: any) => {
