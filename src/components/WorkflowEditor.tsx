@@ -74,9 +74,6 @@ const WorkflowEditorFlow: React.FC = () => {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
-  
-  // Track when we're adding a node to avoid snapshot conflicts
-  const isAddingNodeRef = useRef(false);
 
   // Undo/Redo functionality
   const {
@@ -92,10 +89,6 @@ const WorkflowEditorFlow: React.FC = () => {
 
   // Update nodes and edges when undo/redo state changes
   useEffect(() => {
-    // Don't sync state if we're in the middle of adding a node
-    if (isAddingNodeRef.current) {
-      return;
-    }
     setNodes(currentState.nodes);
     setEdges(currentState.edges);
   }, [currentState, setNodes, setEdges]);
@@ -103,16 +96,6 @@ const WorkflowEditorFlow: React.FC = () => {
   // Enhanced handlers that create snapshots intelligently
   const handleNodesChange = useCallback((changes: any) => {
     onNodesChange(changes);
-    
-    // Don't take snapshots if we're in the middle of adding a node via drag-and-drop
-    if (isAddingNodeRef.current) {
-      // Only reset the flag if this is an 'add' change type
-      const hasAddChange = changes.some((change: any) => change.type === 'add');
-      if (hasAddChange) {
-        // Don't reset flag here, let onDrop handle it with timeout
-        return;
-      }
-    }
     
     // Only take snapshots for non-position changes or when dragging has ended
     const shouldTakeSnapshot = changes.some((change: any) => {
@@ -260,16 +243,12 @@ const WorkflowEditorFlow: React.FC = () => {
         },
       };
 
-      // Set flag to prevent state sync conflicts
-      isAddingNodeRef.current = true;
-      
       const newNodes = [...nodes, newNode];
       setNodes(newNodes);
       
-      // Take snapshot and reset flag after everything is complete
+      // Take snapshot after a brief delay to ensure React state is updated
       setTimeout(() => {
         takeSnapshot(newNodes, edges);
-        isAddingNodeRef.current = false;
       }, 100);
     },
     [screenToFlowPosition, setNodes, nodes, edges, takeSnapshot],
