@@ -1,6 +1,6 @@
 import React from 'react';
-import { Handle, Position } from 'reactflow';
-import type { NodeProps } from 'reactflow';
+import { Handle, Position } from '@xyflow/react';
+import type { NodeProps } from '@xyflow/react';
 import './DecisionNode.less';
 
 interface DecisionNodeData {
@@ -8,7 +8,10 @@ interface DecisionNodeData {
   condition?: string;
 }
 
-const DecisionNode: React.FC<NodeProps<DecisionNodeData>> = ({ data, isConnectable }) => {
+const DecisionNode: React.FC<NodeProps> = ({ data, isConnectable }) => {
+  // Type guard for data
+  const nodeData = data as unknown as DecisionNodeData;
+  
   return (
     <div className="custom-node decision-node">
       <Handle
@@ -32,9 +35,9 @@ const DecisionNode: React.FC<NodeProps<DecisionNodeData>> = ({ data, isConnectab
       />
       <div className="node-content">
         <div className="node-icon">🤔</div>
-        <div className="node-label">{data.label}</div>
-        {data.condition && (
-          <div className="node-condition">{data.condition}</div>
+        <div className="node-label">{nodeData.label}</div>
+        {nodeData.condition && (
+          <div className="node-condition">{nodeData.condition}</div>
         )}
       </div>
     </div>

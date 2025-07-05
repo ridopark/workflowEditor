@@ -21,6 +21,21 @@
       margin: 0;
       color: var(--text-color);
       .text-gradient(var(--primary-color), var(--secondary-color));
+      display: flex;
+      align-items: center;
+      gap: 4px;
+
+      .unsaved-indicator {
+        color: #ff6b6b;
+        font-size: 1.5em;
+        line-height: 1;
+        animation: pulse 2s infinite;
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
     }
 
     .workflow-controls {
@@ -75,6 +90,16 @@
         background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
         color: white;
         border: none;
+
+        &.has-changes {
+          background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+          box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+          
+          &:hover {
+            background: linear-gradient(135deg, #ff5252, #ff7979);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+          }
+        }
 
         &:hover {
           transform: translateY(-1px);

@@ -6,9 +6,9 @@ interface StatusBarProps {
   edgeCount: number;
   selectedNodes: number;
   selectedEdges: number;
-  canUndo: boolean;
-  canRedo: boolean;
-  historyPosition: string;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  historyPosition?: string;
 }
 
 const StatusBar: React.FC<StatusBarProps> = ({
@@ -46,20 +46,22 @@ const StatusBar: React.FC<StatusBarProps> = ({
         </div>
       )}
       
-      <div className="status-section">
-        <span className="status-item">
-          <span className="status-label">History:</span>
-          <span className="status-value">{historyPosition}</span>
-        </span>
-        <div className="status-indicators">
-          <span className={`status-indicator ${canUndo ? 'active' : 'inactive'}`} title="Can Undo">
-            ↶
+      {historyPosition && (
+        <div className="status-section">
+          <span className="status-item">
+            <span className="status-label">History:</span>
+            <span className="status-value">{historyPosition}</span>
           </span>
-          <span className={`status-indicator ${canRedo ? 'active' : 'inactive'}`} title="Can Redo">
-            ↷
-          </span>
+          <div className="status-indicators">
+            <span className={`status-indicator ${canUndo ? 'active' : 'inactive'}`} title="Can Undo">
+              ↶
+            </span>
+            <span className={`status-indicator ${canRedo ? 'active' : 'inactive'}`} title="Can Redo">
+              ↷
+            </span>
+          </div>
         </div>
-      </div>
+      )}
       
       <div className="status-section">
         <span className="status-item">

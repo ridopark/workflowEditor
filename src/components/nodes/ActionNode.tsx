@@ -1,6 +1,5 @@
 import React from 'react';
-import { Handle, Position } from 'reactflow';
-import type { NodeProps } from 'reactflow';
+import { Handle, Position, type NodeProps } from '@xyflow/react';
 import './ActionNode.less';
 
 interface ActionNodeData {
@@ -8,7 +7,10 @@ interface ActionNodeData {
   description?: string;
 }
 
-const ActionNode: React.FC<NodeProps<ActionNodeData>> = ({ data, isConnectable }) => {
+const ActionNode: React.FC<NodeProps> = ({ data, isConnectable }) => {
+  // Type guard for data
+  const nodeData = data as unknown as ActionNodeData;
+  
   return (
     <div className="custom-node action-node">
       <Handle
@@ -23,9 +25,9 @@ const ActionNode: React.FC<NodeProps<ActionNodeData>> = ({ data, isConnectable }
       />
       <div className="node-content">
         <div className="node-icon">⚙️</div>
-        <div className="node-label">{data.label}</div>
-        {data.description && (
-          <div className="node-description">{data.description}</div>
+        <div className="node-label">{nodeData.label}</div>
+        {nodeData.description && (
+          <div className="node-description">{nodeData.description}</div>
         )}
       </div>
     </div>

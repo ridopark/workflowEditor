@@ -1,6 +1,6 @@
 import React from 'react';
-import { Handle, Position } from 'reactflow';
-import type { NodeProps } from 'reactflow';
+import { Handle, Position } from '@xyflow/react';
+import type { NodeProps } from '@xyflow/react';
 import './CustomNode.less';
 
 interface CustomNodeData {
@@ -8,7 +8,10 @@ interface CustomNodeData {
   description?: string;
 }
 
-const CustomNode: React.FC<NodeProps<CustomNodeData>> = ({ data, isConnectable }) => {
+const CustomNode: React.FC<NodeProps> = ({ data, isConnectable }) => {
+  // Type guard for data
+  const nodeData = data as unknown as CustomNodeData;
+  
   return (
     <div className="custom-node start-node">
       <Handle
@@ -18,9 +21,9 @@ const CustomNode: React.FC<NodeProps<CustomNodeData>> = ({ data, isConnectable }
       />
       <div className="node-content">
         <div className="node-icon">🚀</div>
-        <div className="node-label">{data.label}</div>
-        {data.description && (
-          <div className="node-description">{data.description}</div>
+        <div className="node-label">{nodeData.label}</div>
+        {nodeData.description && (
+          <div className="node-description">{nodeData.description}</div>
         )}
       </div>
     </div>

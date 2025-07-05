@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -10,9 +10,9 @@ import {
   addEdge,
   BackgroundVariant,
   useReactFlow,
-} from 'reactflow';
-import type { Connection, Edge, Node } from 'reactflow';
-import 'reactflow/dist/style.css';
+} from '@xyflow/react';
+import type { Connection, Edge, Node } from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 import './WorkflowEditor.less';
 
 // Define custom node types
@@ -23,7 +23,6 @@ import NodePalette from './NodePalette';
 import StatusBar from './StatusBar';
 
 // Import custom hooks
-import { useUndoRedo } from '../hooks/useUndoRedo';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 
 // Define custom node types outside of component to avoid React Flow warnings
@@ -77,94 +76,89 @@ const initialEdges: Edge[] = [
 
 // Workflow Editor Flow Component (needs to be inside ReactFlowProvider)
 const WorkflowEditorFlow: React.FC = () => {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
   
   // Track if the component has been initialized to prevent early undo/redo interference
   const isInitializedRef = useRef(false);
 
-  // Undo/Redo functionality
-  const {
-    takeSnapshot,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-    currentState,
-    historySize,
-    currentIndex
-  } = useUndoRedo(initialNodes, initialEdges);
+  // Use standard React Flow state management
+  const [nodes, setNodes, onNodesChangeBase] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChangeBase] = useEdgesState(initialEdges);
 
-  // Update nodes and edges when undo/redo state changes
-  useEffect(() => {
-    // Skip the first update to avoid interfering with initial drag operations
-    if (!isInitializedRef.current) {
-      return;
-    }
-    
-    setNodes(currentState.nodes);
-    setEdges(currentState.edges);
-  }, [currentState, setNodes, setEdges]);
+  // Hash-based change detection - logs when workflow changes but waits for drag to end
+  const workflowHash = useMemo(() => {
+    if (!nodes || !edges) return null;
 
-  // Enhanced handlers that create snapshots intelligently
-  const handleNodesChange = useCallback((changes: any) => {
-    onNodesChange(changes);
+    // Check if any node is currently being dragged
+    const isDragging = nodes.some(node => node.dragging === true);
     
-    // Don't take snapshots during initial load period
-    if (!isInitializedRef.current) {
-      return;
+    // If dragging, return previous hash without logging
+    if (isDragging) {
+      return 'dragging'; // Return a placeholder to prevent logging during drag
     }
-    
-    // Only take snapshots for non-position changes or when dragging has ended
-    const shouldTakeSnapshot = changes.some((change: any) => {
-      // Take snapshot for all non-position changes (remove, select, etc.)
-      if (change.type !== 'position') return true;
-      
-      // For position changes, only take snapshot if dragging is explicitly false
-      return change.dragging === false;
-    });
-    
-    if (shouldTakeSnapshot) {
-      // Small delay to ensure state is stable
-      setTimeout(() => {
-        takeSnapshot(nodes, edges);
-      }, 50);
-    }
-  }, [onNodesChange, takeSnapshot, nodes, edges]);
 
-  const handleEdgesChange = useCallback((changes: any) => {
-    onEdgesChange(changes);
-    
-    // Take snapshot for edge changes (these are usually deliberate actions)
-    setTimeout(() => {
-      takeSnapshot(nodes, edges);
-    }, 50);
-  }, [onEdgesChange, takeSnapshot, nodes, edges]);
+    // Create a structural fingerprint including positions (after drag ends)
+    const structure = {
+      nodeStructure: nodes.map(n => ({ 
+        id: n.id, 
+        type: n.type,
+        x: Math.round(n.position.x), // Include position but rounded
+        y: Math.round(n.position.y)
+      })).sort((a, b) => a.id.localeCompare(b.id)),
+      edgeStructure: edges.map(e => ({ 
+        id: e.id, 
+        source: e.source, 
+        target: e.target 
+      })).sort((a, b) => a.id.localeCompare(b.id))
+    };
+
+    // Create hash of the structure
+    const structureString = JSON.stringify(structure);
+    const hash = btoa(structureString).slice(0, 16); // Short hash for efficiency
+
+    // Only log when hash changes (structure changed) and not dragging
+    const workflow = {
+      timestamp: new Date().toISOString(),
+      hash,
+      summary: {
+        nodeTypes: nodes.reduce((acc, node) => {
+          acc[node.type || 'default'] = (acc[node.type || 'default'] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>),
+        connections: edges.map(edge => `${edge.source} → ${edge.target}`),
+        nodeCount: nodes.length,
+        edgeCount: edges.length
+      },
+      nodes,
+      edges
+    };
+
+    console.group('🔄 Workflow Structure Changed');
+    console.log('🔑 Hash:', hash);
+    console.log('📊 Summary:', workflow.summary);
+    console.groupEnd();
+
+    return hash;
+  }, [
+    // Include positions but useMemo will skip logging during drag
+    nodes.length,
+    edges.length,
+    JSON.stringify(nodes.map(n => ({ 
+      id: n.id, 
+      type: n.type, 
+      x: Math.round(n.position.x), 
+      y: Math.round(n.position.y),
+      dragging: n.dragging 
+    }))),
+    JSON.stringify(edges.map(e => ({ id: e.id, source: e.source, target: e.target })))
+  ]);
 
   const handleConnect = useCallback((params: Connection) => {
+    console.log('➕ New Connection:', params);
     const newEdges = addEdge(params, edges);
     setEdges(newEdges);
-    takeSnapshot(nodes, newEdges);
-  }, [edges, setEdges, takeSnapshot, nodes]);
-
-  // Undo/Redo handlers
-  const handleUndo = useCallback(() => {
-    const previousState = undo();
-    if (previousState) {
-      setNodes(previousState.nodes);
-      setEdges(previousState.edges);
-    }
-  }, [undo, setNodes, setEdges]);
-
-  const handleRedo = useCallback(() => {
-    const nextState = redo();
-    if (nextState) {
-      setNodes(nextState.nodes);
-      setEdges(nextState.edges);
-    }
-  }, [redo, setNodes, setEdges]);
+  }, [edges, setEdges]);
 
   // Save workflow handler
   const handleSave = useCallback(() => {
@@ -180,19 +174,21 @@ const WorkflowEditorFlow: React.FC = () => {
     const selectedEdges = edges.filter(edge => edge.selected);
     
     if (selectedNodes.length > 0 || selectedEdges.length > 0) {
+      console.log('🗑️ Deleting:', { 
+        nodes: selectedNodes.map(n => ({ id: n.id, type: n.type, label: n.data.label })),
+        edges: selectedEdges.map(e => ({ id: e.id, source: e.source, target: e.target }))
+      });
+      
       const newNodes = nodes.filter(node => !node.selected);
       const newEdges = edges.filter(edge => !edge.selected);
       
       setNodes(newNodes);
       setEdges(newEdges);
-      takeSnapshot(newNodes, newEdges);
     }
-  }, [nodes, edges, setNodes, setEdges, takeSnapshot]);
+  }, [nodes, edges, setNodes, setEdges]);
 
   // Setup keyboard shortcuts
   useKeyboardShortcuts({
-    onUndo: handleUndo,
-    onRedo: handleRedo,
     onSave: handleSave,
     onDelete: handleDelete,
   });
@@ -209,10 +205,10 @@ const WorkflowEditorFlow: React.FC = () => {
 
   // ReactFlow initialization handler
   const onInit = useCallback(() => {
-    // Mark as initialized and take the initial snapshot
+    // Mark as initialized for any future functionality
     isInitializedRef.current = true;
-    takeSnapshot(nodes, edges);
-  }, [takeSnapshot, nodes, edges]);
+    console.log('✅ Workflow Editor Initialized');
+  }, []);
 
   // Calculate selected items count
   const selectedNodesCount = useMemo(() => 
@@ -263,12 +259,9 @@ const WorkflowEditorFlow: React.FC = () => {
       const newNodes = [...nodes, newNode];
       setNodes(newNodes);
       
-      // Take snapshot after a brief delay to ensure React state is updated
-      setTimeout(() => {
-        takeSnapshot(newNodes, edges);
-      }, 100);
+      console.log('🎯 New node dropped:', { id: newNode.id, type: newNode.type, position: newNode.position });
     },
-    [screenToFlowPosition, setNodes, nodes, edges, takeSnapshot],
+    [screenToFlowPosition, setNodes, nodes, edges],
   );
 
   return (
@@ -276,27 +269,6 @@ const WorkflowEditorFlow: React.FC = () => {
       <div className="workflow-header">
         <h2>Workflow Editor</h2>
         <div className="workflow-controls">
-          <div className="control-group">
-            <button 
-              className={`btn-icon ${!canUndo ? 'disabled' : ''}`}
-              onClick={handleUndo}
-              disabled={!canUndo}
-              title="Undo (Ctrl+Z)"
-            >
-              ↶
-            </button>
-            <button 
-              className={`btn-icon ${!canRedo ? 'disabled' : ''}`}
-              onClick={handleRedo}
-              disabled={!canRedo}
-              title="Redo (Ctrl+Y)"
-            >
-              ↷
-            </button>
-            <span className="history-info">
-              {currentIndex + 1}/{historySize}
-            </span>
-          </div>
           <div className="control-group">
             <button className="btn-primary" onClick={handleSave} title="Save (Ctrl+S)">
               Save Workflow
@@ -323,8 +295,8 @@ const WorkflowEditorFlow: React.FC = () => {
           <ReactFlow
             nodes={nodes}
             edges={edges}
-            onNodesChange={handleNodesChange}
-            onEdgesChange={handleEdgesChange}
+            onNodesChange={onNodesChangeBase}
+            onEdgesChange={onEdgesChangeBase}
             onConnect={handleConnect}
             onNodeClick={onNodeClick}
             onEdgeClick={onEdgeClick}
@@ -362,9 +334,6 @@ const WorkflowEditorFlow: React.FC = () => {
         edgeCount={edges.length}
         selectedNodes={selectedNodesCount}
         selectedEdges={selectedEdgesCount}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        historyPosition={`${currentIndex + 1}/${historySize}`}
       />
     </div>
   );
