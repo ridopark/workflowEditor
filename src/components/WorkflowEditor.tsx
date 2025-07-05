@@ -82,6 +82,7 @@ const WorkflowEditorFlow: React.FC = () => {
   
   // Track if the component has been initialized to prevent early undo/redo interference
   const isInitializedRef = useRef(false);
+  const isUndoRedoInProgressRef = useRef(false);
 
   // Use standard React Flow state management
   const [nodes, setNodes, onNodesChangeBase] = useNodesState(initialNodes);
@@ -92,6 +93,12 @@ const WorkflowEditorFlow: React.FC = () => {
 
   // Hash-based change detection - logs when workflow changes but waits for drag to end
   const workflowHash = useMemo(() => {
+    console.log('🔄 workflowHash recalculating...', {
+      nodeCount: nodes?.length || 0,
+      edgeCount: edges?.length || 0,
+      isDragging: nodes?.some(node => node.dragging === true) || false
+    });
+
     if (!nodes || !edges) return null;
 
     // Check if any node is currently being dragged
@@ -103,17 +110,20 @@ const WorkflowEditorFlow: React.FC = () => {
     }
 
     // Create a structural fingerprint including positions (after drag ends)
+    // NOTE: Only tracks structural changes - excludes selection, data changes, etc.
     const structure = {
       nodeStructure: nodes.map(n => ({ 
         id: n.id, 
         type: n.type,
         x: Math.round(n.position.x), // Include position but rounded
         y: Math.round(n.position.y)
+        // Deliberately excluding: selected, data, dragging, etc.
       })).sort((a, b) => a.id.localeCompare(b.id)),
       edgeStructure: edges.map(e => ({ 
         id: e.id, 
         source: e.source, 
         target: e.target 
+        // Deliberately excluding: selected, data, etc.
       })).sort((a, b) => a.id.localeCompare(b.id))
     };
 
@@ -143,22 +153,32 @@ const WorkflowEditorFlow: React.FC = () => {
     console.log('📊 Summary:', workflow.summary);
     console.groupEnd();
 
-    // Take snapshot for undo/redo
-    takeSnapshot(nodes, edges);
+    // Take snapshot for undo/redo only if we're not in the middle of an undo/redo operation
+    if (!isUndoRedoInProgressRef.current) {
+      takeSnapshot(nodes, edges);
+    } else {
+      console.log('⏩ Skipping snapshot during undo/redo operation');
+    }
 
     return hash;
   }, [
-    // Include positions but useMemo will skip logging during drag
+    // Only include things that constitute actual workflow structure changes
     nodes.length,
     edges.length,
+    // Node structure (excluding selection, data changes, etc.)
     JSON.stringify(nodes.map(n => ({ 
       id: n.id, 
       type: n.type, 
       x: Math.round(n.position.x), 
       y: Math.round(n.position.y),
-      dragging: n.dragging 
+      dragging: n.dragging // Include to detect drag state
     }))),
-    JSON.stringify(edges.map(e => ({ id: e.id, source: e.source, target: e.target })))
+    // Edge structure (excluding selection, data changes, etc.)
+    JSON.stringify(edges.map(e => ({ 
+      id: e.id, 
+      source: e.source, 
+      target: e.target 
+    })))
   ]);
 
   // Explicitly use workflowHash to suppress "unused variable" warning
@@ -172,20 +192,48 @@ const WorkflowEditorFlow: React.FC = () => {
 
   // Undo/Redo handlers
   const handleUndo = useCallback(() => {
+    console.log('🔄 handleUndo called, canUndo:', canUndo);
+    isUndoRedoInProgressRef.current = true;
+    
     const previousState = undo();
     if (previousState) {
+      console.log('✅ Applying undo state:', {
+        nodeCount: previousState.nodes.length,
+        edgeCount: previousState.edges.length
+      });
       setNodes(previousState.nodes);
       setEdges(previousState.edges);
+    } else {
+      console.log('❌ No undo state available');
     }
-  }, [undo, setNodes, setEdges]);
+    
+    // Reset the flag after a short delay to allow React to finish updates
+    setTimeout(() => {
+      isUndoRedoInProgressRef.current = false;
+    }, 0);
+  }, [undo, setNodes, setEdges, canUndo]);
 
   const handleRedo = useCallback(() => {
+    console.log('🔄 handleRedo called, canRedo:', canRedo);
+    isUndoRedoInProgressRef.current = true;
+    
     const nextState = redo();
     if (nextState) {
+      console.log('✅ Applying redo state:', {
+        nodeCount: nextState.nodes.length,
+        edgeCount: nextState.edges.length
+      });
       setNodes(nextState.nodes);
       setEdges(nextState.edges);
+    } else {
+      console.log('❌ No redo state available');
     }
-  }, [redo, setNodes, setEdges]);
+    
+    // Reset the flag after a short delay to allow React to finish updates
+    setTimeout(() => {
+      isUndoRedoInProgressRef.current = false;
+    }, 0);
+  }, [redo, setNodes, setEdges, canRedo]);
 
   // Save workflow handler
   const handleSave = useCallback(() => {
@@ -223,12 +271,23 @@ const WorkflowEditorFlow: React.FC = () => {
   });
 
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
-    console.log('Node clicked:', node);
+    console.log('👆 Node clicked:', {
+      id: node.id,
+      type: node.type,
+      selected: node.selected,
+      message: 'This should NOT trigger a workflow change'
+    });
     // Here you can implement node editing functionality
   }, []);
 
   const onEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
-    console.log('Edge clicked:', edge);
+    console.log('👆 Edge clicked:', {
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      selected: edge.selected,
+      message: 'This should NOT trigger a workflow change'
+    });
     // Here you can implement edge editing functionality
   }, []);
 
@@ -236,8 +295,13 @@ const WorkflowEditorFlow: React.FC = () => {
   const onInit = useCallback(() => {
     // Mark as initialized for any future functionality
     isInitializedRef.current = true;
+    
+    // Take initial snapshot
+    console.log('📸 Taking initial snapshot');
+    takeSnapshot(initialNodes, initialEdges);
+    
     console.log('✅ Workflow Editor Initialized');
-  }, []);
+  }, [takeSnapshot]);
 
   // Calculate selected items count
   const selectedNodesCount = useMemo(() => 
@@ -318,6 +382,21 @@ const WorkflowEditorFlow: React.FC = () => {
             <span className="history-info">
               {currentIndex + 1}/{historySize}
             </span>
+            <button 
+              className="btn-secondary"
+              onClick={() => {
+                console.log('🧪 Debug Redo Button Clicked:', {
+                  canRedo,
+                  currentIndex,
+                  historySize,
+                  historyLength: historySize
+                });
+                handleRedo();
+              }}
+              title="Debug Redo"
+            >
+              Test Redo
+            </button>
           </div>
           <div className="control-group">
             <button className="btn-primary" onClick={handleSave} title="Save (Ctrl+S)">
