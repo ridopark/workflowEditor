@@ -24,6 +24,7 @@ import StatusBar from './StatusBar';
 
 // Import custom hooks
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { useUndoRedo } from '../hooks/useUndoRedo';
 
 // Define custom node types outside of component to avoid React Flow warnings
 const nodeTypes = {
@@ -86,6 +87,9 @@ const WorkflowEditorFlow: React.FC = () => {
   const [nodes, setNodes, onNodesChangeBase] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChangeBase] = useEdgesState(initialEdges);
 
+  // Undo/Redo functionality
+  const { takeSnapshot, undo, redo, canUndo, canRedo, historySize, currentIndex } = useUndoRedo();
+
   // Hash-based change detection - logs when workflow changes but waits for drag to end
   const workflowHash = useMemo(() => {
     if (!nodes || !edges) return null;
@@ -139,6 +143,9 @@ const WorkflowEditorFlow: React.FC = () => {
     console.log('📊 Summary:', workflow.summary);
     console.groupEnd();
 
+    // Take snapshot for undo/redo
+    takeSnapshot(nodes, edges);
+
     return hash;
   }, [
     // Include positions but useMemo will skip logging during drag
@@ -154,11 +161,31 @@ const WorkflowEditorFlow: React.FC = () => {
     JSON.stringify(edges.map(e => ({ id: e.id, source: e.source, target: e.target })))
   ]);
 
+  // Explicitly use workflowHash to suppress "unused variable" warning
+  void workflowHash;
+
   const handleConnect = useCallback((params: Connection) => {
     console.log('➕ New Connection:', params);
     const newEdges = addEdge(params, edges);
     setEdges(newEdges);
   }, [edges, setEdges]);
+
+  // Undo/Redo handlers
+  const handleUndo = useCallback(() => {
+    const previousState = undo();
+    if (previousState) {
+      setNodes(previousState.nodes);
+      setEdges(previousState.edges);
+    }
+  }, [undo, setNodes, setEdges]);
+
+  const handleRedo = useCallback(() => {
+    const nextState = redo();
+    if (nextState) {
+      setNodes(nextState.nodes);
+      setEdges(nextState.edges);
+    }
+  }, [redo, setNodes, setEdges]);
 
   // Save workflow handler
   const handleSave = useCallback(() => {
@@ -189,6 +216,8 @@ const WorkflowEditorFlow: React.FC = () => {
 
   // Setup keyboard shortcuts
   useKeyboardShortcuts({
+    onUndo: handleUndo,
+    onRedo: handleRedo,
     onSave: handleSave,
     onDelete: handleDelete,
   });
@@ -270,6 +299,27 @@ const WorkflowEditorFlow: React.FC = () => {
         <h2>Workflow Editor</h2>
         <div className="workflow-controls">
           <div className="control-group">
+            <button 
+              className={`btn-icon ${!canUndo ? 'disabled' : ''}`}
+              onClick={handleUndo}
+              disabled={!canUndo}
+              title="Undo (Ctrl+Z)"
+            >
+              ↶
+            </button>
+            <button 
+              className={`btn-icon ${!canRedo ? 'disabled' : ''}`}
+              onClick={handleRedo}
+              disabled={!canRedo}
+              title="Redo (Ctrl+Y)"
+            >
+              ↷
+            </button>
+            <span className="history-info">
+              {currentIndex + 1}/{historySize}
+            </span>
+          </div>
+          <div className="control-group">
             <button className="btn-primary" onClick={handleSave} title="Save (Ctrl+S)">
               Save Workflow
             </button>
@@ -334,6 +384,9 @@ const WorkflowEditorFlow: React.FC = () => {
         edgeCount={edges.length}
         selectedNodes={selectedNodesCount}
         selectedEdges={selectedEdgesCount}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        historyPosition={`${currentIndex + 1}/${historySize}`}
       />
     </div>
   );

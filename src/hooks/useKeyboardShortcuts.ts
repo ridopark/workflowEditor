@@ -29,6 +29,7 @@ export const useKeyboardShortcuts = (shortcuts: KeyboardShortcuts) => {
             break;
             
           case 'y':
+            console.log('Ctrl+Y pressed, redo available:', !!shortcuts.onRedo);
             if (!shiftKey && shortcuts.onRedo) {
               event.preventDefault();
               shortcuts.onRedo();
